@@ -1,47 +1,125 @@
 import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
-# 1. Calorie Calculator (Harris-Benedict)
-def calculate_calories(age, gender, weight, height, activity, goal):
-    # BMR calculation
-    if gender.lower() == "male":
-        bmr = 88.36 + (13.4 * weight) + (4.8 * height) - (5.7 * age)
-    else:  # female
-        bmr = 447.6 + (9.2 * weight) + (3.1 * height) - (4.3 * age)
-
-    # Activity multipliers
-    activity_levels = {
-        "sedentary": 1.2,
-        "light": 1.375,
-        "moderate": 1.55,
-        "active": 1.725,
-        "very active": 1.9,
+# ------------------------------
+# Machine Learning Model
+# ------------------------------
+def train_calorie_model():
+    """
+    Train a simple calorie prediction model using dummy dataset.
+    Replace with real training data if available.
+    """
+    data = {
+        "age": [20, 30, 40, 50, 60],
+        "weight": [60, 70, 80, 90, 100],
+        "height": [160, 170, 180, 190, 200],
+        "activity": [1.2, 1.375, 1.55, 1.725, 1.9],  # activity multipliers
+        "calories": [2000, 2200, 2500, 2800, 3000],
     }
-    maintenance = bmr * activity_levels.get(activity.lower(), 1.2)
+    df_train = pd.DataFrame(data)
 
-    # Adjust based on goal
-    if goal == "weight_loss":
-        return maintenance - 500
-    elif goal == "weight_gain":
-        return maintenance + 500
+    X = df_train[["age", "weight", "height", "activity"]]
+    y = df_train["calories"]
+
+    model = LinearRegression()
+    model.fit(X, y)
+    return model
+
+
+def predict_calories(model, age, gender, weight, height, activity, goal):
+    """
+    Predict calories based on user inputs.
+    """
+    # Convert activity level to multiplier
+    activity_map = {
+        "Sedentary": 1.2,
+        "Light": 1.375,
+        "Moderate": 1.55,
+        "Active": 1.725,
+        "Very Active": 1.9,
+    }
+    act_value = activity_map.get(activity, 1.2)
+
+    # Prepare input
+    X_new = np.array([[age, weight, height, act_value]])
+
+    # Base prediction from ML model
+    calories = model.predict(X_new)[0]
+
+    # Gender adjustment
+    if gender.lower() == "male":
+        calories *= 1.05
     else:
-        return maintenance  # maintenance
+        calories *= 0.95
 
-# 2. Filter foods by dietary preference
-def filter_foods(df, dietary_pref):
-    return df[df["Tags"].str.contains(dietary_pref, case=False, na=False)]
+    # Goal adjustment
+    if goal == "weight loss":
+        calories -= 500
+    elif goal == "weight gain":
+        calories += 500
 
-# 3. Generate meal plan
-def generate_meal_plan(df, target_calories):
-    # Pick foods until total calories ≈ target
-    selected = []
-    total_cal = 0
+    return calories
 
-    for _, row in df.sample(frac=1).iterrows():  # shuffle foods
-        if total_cal + row["Calories"] <= target_calories:
-            selected.append(row)
-            total_cal += row["Calories"]
 
-        if total_cal >= target_calories * 0.95:  # stop when close to target
+# ------------------------------
+# Food Filtering
+# ------------------------------
+def filter_foods(df, diet):
+    """
+    Filter foods based on dietary preference.
+    """
+    if diet.lower() == "vegan":
+        return df[df["Tags"].str.contains("vegan", case=False, na=False)]
+    elif diet.lower() == "vegetarian":
+        return df[df["Tags"].str.contains("vegetarian", case=False, na=False)]
+    elif diet.lower() == "non-vegetarian":
+        return df[df["Tags"].str.contains("non-vegetarian", case=False, na=False)]
+    elif diet.lower() == "gluten-free":
+        return df[df["Tags"].str.contains("gluten-free", case=False, na=False)]
+    else:
+        return df
+
+
+# ------------------------------
+# Meal Plan Generation
+# ------------------------------
+def generate_meal_plan(filtered_df, target_calories):
+    """
+    Generate a daily meal plan by randomly selecting foods
+    until reaching target calories.
+    """
+    meal_plan = pd.DataFrame(columns=filtered_df.columns)
+    total_calories = 0
+
+    while total_calories < target_calories and not filtered_df.empty:
+        food = filtered_df.sample(1)
+        meal_plan = pd.concat([meal_plan, food])
+        total_calories = meal_plan["Calories"].sum()
+
+        if total_calories > target_calories + 200:
             break
 
-    return pd.DataFrame(selected)
+    return meal_plan.reset_index(drop=True)
+
+
+def split_meals(daily_plan):
+    """
+    Split daily plan into Breakfast, Lunch, Dinner, Snacks
+    without repeating the same foods.
+    """
+    n = len(daily_plan)
+    daily_plan = daily_plan.sample(frac=1).reset_index(drop=True)  # shuffle
+
+    breakfast = daily_plan.iloc[: int(0.25 * n)]
+    lunch = daily_plan.iloc[int(0.25 * n) : int(0.6 * n)]
+    dinner = daily_plan.iloc[int(0.6 * n) : int(0.9 * n)]
+    snacks = daily_plan.iloc[int(0.9 * n) :]
+
+    meals = {
+        "Breakfast": breakfast,
+        "Lunch": lunch,
+        "Dinner": dinner,
+        "Snacks": snacks,
+    }
+    return meals

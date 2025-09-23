@@ -1,41 +1,48 @@
 import streamlit as st
 import pandas as pd
-from diet_utils import calculate_calories, filter_foods, generate_meal_plan
+from diet_utils import train_calorie_model, predict_calories, filter_foods, generate_meal_plan, split_meals
 
-# Load the dataset
+# Load dataset
 df = pd.read_csv("usda_foods.csv")
 
-# Streamlit App
-st.title("AI Diet Recommender 🍎")
+st.title("AI Diet Recommender 🍎 - Weekly Planner")
 
+# Sidebar Inputs
 st.sidebar.header("Enter Your Details")
-age = st.sidebar.number_input("Age (years)", min_value=10, max_value=100, value=25)
+age = st.sidebar.number_input("Age (years)", 10, 100, 25)
 gender = st.sidebar.selectbox("Gender", ["Male", "Female"])
-weight = st.sidebar.number_input("Weight (kg)", min_value=30, max_value=200, value=70)
-height = st.sidebar.number_input("Height (cm)", min_value=100, max_value=250, value=170)
+weight = st.sidebar.number_input("Weight (kg)", 30, 200, 70)
+height = st.sidebar.number_input("Height (cm)", 100, 250, 170)
 activity = st.sidebar.selectbox(
     "Activity Level", ["Sedentary", "Light", "Moderate", "Active", "Very Active"]
 )
 goal = st.sidebar.selectbox("Goal", ["Weight Loss", "Maintain", "Weight Gain"])
-diet = st.sidebar.selectbox(
-    "Dietary Preference", ["vegan", "vegetarian", "halal", "gluten-free"]
-)
+diet = st.sidebar.selectbox("Dietary Preference", ["vegan", "vegetarian", "non-vegetarian", "gluten-free"])
 
-# Calculate daily calories
-calories_needed = calculate_calories(age, gender, weight, height, activity, goal.lower())
+# --- Train ML model for calorie prediction ---
+model = train_calorie_model()
 
-st.write(f"### Your Daily Calorie Target: {int(calories_needed)} kcal")
+# Predict daily calories using ML
+calories_needed = predict_calories(model, age, gender, weight, height, activity, goal.lower())
+st.write(f"### Your Daily Calorie Target: {int(calories_needed)} kcal (Predicted by ML Model)")
 
 # Filter foods based on diet
 filtered_df = filter_foods(df, diet)
 
-# Generate meal plan
-meal_plan = generate_meal_plan(filtered_df, calories_needed)
+# Weekly planner
+st.write("## Your 7-Day Meal Plan")
+for day in range(1, 8):
+    daily_plan = generate_meal_plan(filtered_df, calories_needed)
+    meals = split_meals(daily_plan)
 
-st.write("### Your Recommended Meal Plan")
-st.dataframe(meal_plan[["Food", "Category", "Calories", "Protein", "Carbs", "Fat"]])
+    with st.expander(f"Day {day}"):
+        for meal_name, meal_df in meals.items():
+            st.write(f"### {meal_name}")
+            if not meal_df.empty:
+                st.dataframe(meal_df[["Food", "Category", "Calories", "Protein", "Carbs", "Fat"]])
 
-# Show total nutrition
-total_nutrition = meal_plan[["Calories", "Protein", "Carbs", "Fat"]].sum()
-st.write("### Total Nutrition for the Day")
-st.write(total_nutrition)
+                # Macro chart
+                macro_totals = meal_df[["Calories", "Protein", "Carbs", "Fat"]].sum()
+                st.bar_chart(macro_totals)
+            else:
+                st.write("⚠️ No foods available for this meal.")

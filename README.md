@@ -37,7 +37,6 @@ The specific objectives are:
 
 
 
-3. Problem Definition
 
 In today’s busy lifestyle, most people do not have proper knowledge about what kind of food they should eat according to their body type, health condition, and fitness goals. Many people face issues like obesity, diabetes, or cholesterol due to unhealthy eating habits.
 

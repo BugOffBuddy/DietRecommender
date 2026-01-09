@@ -1,6 +1,6 @@
 # DietRecommender
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit-badge-primary.svg)](https://dietrecommender.streamlit.app/)
+[Click here to open the Diet Recommender App](https://dietrecommender.streamlit.app/)
 
 1. Abstract / Introduction
 

@@ -1,4 +1,7 @@
 # DietRecommender
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit-badge-primary.svg)](https://dietrecommender.streamlit.app/)
+
 1. Abstract / Introduction
 
 ⦁	Need : In today’s busy world, most people don’t have time to properly plan their diet according to their health conditions. Many eat without knowing what is good or bad for their body, which leads to problems like obesity, diabetes, or cholesterol. To solve this issue, our project “AI-Based Personalized Diet Recommendation System” uses Machine Learning to suggest a balanced diet plan based on a person’s health details.
